@@ -18,151 +18,153 @@ const { PROJECT_DDB } = process.env;
  *   description: 인증
  */
 
- /**
- * @swagger
- * /auth/sign/:
- *   post:
- *     tags: [auth]
- *     summary: 프로젝트 등록
- *     security:
- *       - Access_Token: []
- *     requestBody:
- *       description: 프로젝트 정보
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: "#/definitions/pushSign"
- *     responses:
- *       allOf:
- *       - $ref: '#/components/responses/All'
- *       200:
- *         content:
- *           application/json:
- *             example:
- *               message: "notification 서버 프로젝트 등록 성공"
- *               data: [{"client_key": "ABCDEFGHIJK"}]
- */
+/**
+* @swagger
+* /auth/sign/:
+*   post:
+*     tags: [auth]
+*     summary: 프로젝트 등록
+*     security:
+*       - Access_Token: []
+*     requestBody:
+*       description: 프로젝트 정보
+*       required: true
+*       content:
+*         application/json:
+*           schema:
+*             $ref: "#/definitions/pushSign"
+*     responses:
+*       allOf:
+*       - $ref: '#/components/responses/All'
+*       200:
+*         content:
+*           application/json:
+*             example:
+*               message: "notification 서버 프로젝트 등록 성공"
+*               data: [{"client_key": "ABCDEFGHIJK"}]
+*/
 
 router.post('/sign/', async (req, res) => {
-    try {
-        const { project, server_key } = req.body;
-				const korean = /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/;
-				const specialString = /[`~!@#$%^&*|\\\'\";:\/?\s]/gi;
+	try {
+		const { project, server_key } = req.body;
+		const korean = /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/;
+		const specialString = /[`~!@#$%^&*|\\\'\";:\/?\s]/gi;
 
-        if (!project) return badRequest(res, '프로젝트 필수.');
-        if (korean.test(project)) return badRequest(res, '프로젝트명 한글 지원 안됨.');
-        if (specialString.test(project)) return badRequest(res, '프로젝트명 특수문자, 공백 지원 안됨');
-        if (!server_key) return badRequest(res, '서버키 필수.');
+		if (!project) return badRequest(res, '프로젝트 필수.');
+		if (korean.test(project)) return badRequest(res, '프로젝트명 한글 지원 안됨.');
+		if (specialString.test(project)) return badRequest(res, '프로젝트명 특수문자, 공백 지원 안됨');
+		if (!server_key) return badRequest(res, '서버키 필수.');
 
-        // 서버 프로젝트 정보 저장
-        const project_check = await dynamodb.get({ TableName: PROJECT_DDB, Key : { id: project } }).promise();
+		// 서버 프로젝트 정보 저장
+		const project_check = await dynamodb.get({ TableName: PROJECT_DDB, Key: { id: project } }).promise();
 
-        if (Object.keys(project_check).length) return badRequest(res, '이미 등록된 프로젝트 입니다.');
-        
-        const Item = {
-            id : project,
-            server_key,
-            push_id : createGuid(),
-            salt_key : createGuid()
-        }
+		if (Object.keys(project_check).length) return badRequest(res, '이미 등록된 프로젝트 입니다.');
 
-        const client_key = encrypt(Item.push_id, Item.salt_key);
-        const tableName = `${project}-noti`;
-        const tableName2 = `${project}-token`;
+		const Item = {
+			id: project,
+			server_key,
+			push_id: createGuid(),
+			salt_key: createGuid()
+		}
 
-        //예약전송 테이블생성
-        await Dynamodb.createTable({
-            TableName : tableName,
-            KeySchema: [       
-                { AttributeName: "time", KeyType: "HASH"},  //Partition key
-                { AttributeName: "cid", KeyType: "RANGE" }  //Sort key
-            ],
-            AttributeDefinitions: [       
-                { AttributeName: "time", AttributeType: "N" },
-                { AttributeName: "cid", AttributeType: "S" }
-            ],
-            ProvisionedThroughput: {       
-                ReadCapacityUnits: 5, 
-                WriteCapacityUnits: 5
-            }
-        }).promise();
-        // | PAY_PER_REQUEST
-        //토큰관리테이블
-        await Dynamodb.createTable({
-            TableName : tableName2,
-            KeySchema: [
-                { AttributeName: "cid", KeyType: "HASH" }  //Sort key
-            ],
-            AttributeDefinitions: [       
-                { AttributeName: "cid", AttributeType: "N" }
-            ],
-            ProvisionedThroughput: {       
-                ReadCapacityUnits: 5, 
-                WriteCapacityUnits: 5
-            }
-        }).promise();
+		const client_key = encrypt(Item.push_id, Item.salt_key);
+		const tableName = `${project}-noti`;
+		const tableName2 = `${project}-token`;
+		const ProvisionedThroughput = {
+			ReadCapacityUnits: 5,
+			WriteCapacityUnits: 5
+		}
 
-        await dynamodb.put({ TableName: PROJECT_DDB, Item }).promise();
-        
-        res.send({
-            success: true,
-            message: 'notification 서버 프로젝트 등록 성공',
-            data: { client_key }
-        });
+		//예약전송 테이블생성
+		const create_noti = Dynamodb.createTable({
+			TableName: tableName,
+			KeySchema: [
+				{ AttributeName: "time", KeyType: "HASH" },  //Partition key
+				{ AttributeName: "cid", KeyType: "RANGE" }  //Sort key
+			],
+			AttributeDefinitions: [
+				{ AttributeName: "time", AttributeType: "N" },
+				{ AttributeName: "cid", AttributeType: "S" }
+			],
+			ProvisionedThroughput
+		}).promise();
 
-    } catch (e){
-        return badRequest(res, 'push 서버 프로젝트 등록 에러', e);
-    }
+		//토큰관리테이블
+		const create_token = Dynamodb.createTable({
+			TableName: tableName2,
+			KeySchema: [
+				{ AttributeName: "cid", KeyType: "HASH" }  //Sort key
+			],
+			AttributeDefinitions: [
+				{ AttributeName: "cid", AttributeType: "N" }
+			],
+			ProvisionedThroughput
+		}).promise();
+
+		await Promise.all([create_noti, create_token]);
+
+		await dynamodb.put({ TableName: PROJECT_DDB, Item }).promise();
+
+		res.send({
+			success: true,
+			message: 'notification 서버 프로젝트 등록 성공',
+			data: { client_key }
+		});
+
+	} catch (e) {
+		return badRequest(res, 'push 서버 프로젝트 등록 에러', e);
+	}
 });
 
 
 
 
- /**
- * @swagger
- * /auth/sign/:
- *   delete:
- *     summary: 프로젝트 삭제
- *     tags: [auth]
- *     security:
- *       - Access_Token: []
- *     requestBody:
- *       description: 프로젝트 정보
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: "#/definitions/pushDelete"
- *     responses:
- *       allOf:
- *       - $ref: '#/components/responses/All'
- */
- 
+/**
+* @swagger
+* /auth/sign/:
+*   delete:
+*     summary: 프로젝트 삭제
+*     tags: [auth]
+*     security:
+*       - Access_Token: []
+*     requestBody:
+*       description: 프로젝트 정보
+*       required: true
+*       content:
+*         application/json:
+*           schema:
+*             $ref: "#/definitions/pushDelete"
+*     responses:
+*       allOf:
+*       - $ref: '#/components/responses/All'
+*/
+
 router.delete('/sign/', async (req, res) => {
-    try {
+	try {
 
-        const { project } = req.body;
+		const { project } = req.body;
 
-        if (!project) return badRequest(res, '프로젝트 필수.');
-            
-        const project_check = await dynamodb.get({ TableName: PROJECT_DDB, Key : { id: project } }).promise();
-        
-        if (!Object.keys(project_check).length) return badRequest(res, '없는 프로젝트입니다.');
-        
+		if (!project) return badRequest(res, '프로젝트 필수.');
 
-        await dynamodb.delete({ TableName: PROJECT_DDB, Key : { id: project } }).promise();
-        await Dynamodb.deleteTable({TableName: `${project}-noti`}).promise();
-        await Dynamodb.deleteTable({TableName: `${project}-token`}).promise();
+		const project_check = await dynamodb.get({ TableName: PROJECT_DDB, Key: { id: project } }).promise();
 
-        res.send({
-            success: true,
-            message: '프로젝트 삭제 완료',
-        });
-   
-    } catch (e){
-        return badRequest(res, '프로젝트 삭제 에러', e);
-    }
+		if (!Object.keys(project_check).length) return badRequest(res, '없는 프로젝트입니다.');
+
+
+		await Promise.all([
+			dynamodb.delete({ TableName: PROJECT_DDB, Key: { id: project } }).promise(),
+			Dynamodb.deleteTable({ TableName: `${project}-noti` }).promise(),
+			Dynamodb.deleteTable({ TableName: `${project}-token` }).promise(),
+		])
+
+		res.send({
+			success: true,
+			message: '프로젝트 삭제 완료',
+		});
+
+	} catch (e) {
+		return badRequest(res, '프로젝트 삭제 에러', e);
+	}
 });
 
 module.exports = router;
