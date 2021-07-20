@@ -1,0 +1,121 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  noti-server
+
+  Sample SAM Template for noti-server
+
+  
+Parameters:
+  allLayer:
+    Type: String
+    Description: zip layer arn
+    Default: 'arn:aws:lambda:ap-northeast-2:xxxxxxx:layer:xxxxx:3'
+  
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Runtime: nodejs12.x
+    Timeout: 30
+    MemorySize: 128
+    Layers:
+      - !Ref allLayer
+    Environment:
+      Variables:
+        PROJECT_DDB: !Ref ProjectDB
+    
+
+Resources:
+
+  # role 
+  FullAccess:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      ManagedPolicyArns: 
+        - arn:aws:iam::aws:policy/AdministratorAccess
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaRole
+        
+  # dynamoDB
+  ProjectDB: 
+    Type: AWS::Serverless::SimpleTable
+
+  # SQS
+  SimpleQueue:
+    Type: AWS::SQS::Queue
+
+  # Api gateway
+  notiApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name : notiApi
+      StageName: Prod
+      Cors:
+        AllowMethods: "'GET,POST,DELETE'"
+        AllowHeaders: "'Content-Type, Authorization, Content-Length, x-requested-with'"
+        AllowOrigin: "'*'"
+
+  # Lambda
+  ExpressFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: express/
+      Handler: index.handler
+      Environment:
+        Variables:
+          BASE_PATH: "/Prod/"
+          SCHEMES: "https"
+          SQS_URL: !Ref SimpleQueue
+      Events:
+        BackendApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref notiApi
+            Path: /{proxy+}
+            Method: ANY
+
+  CronFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: cron/
+      Handler: app.handler
+      Role: !GetAtt FullAccess.Arn
+      Environment:
+        Variables:
+          SQS_URL: !Ref SimpleQueue
+      Events:
+        ScheduleExpression:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0,30 * * * ? *)
+            Description: coldstart
+            Enabled: True
+            
+  SendFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: queueInsert/
+      Handler: app.handler
+      Role: !GetAtt FullAccess.Arn
+      Events:
+        SQSEvent:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt SimpleQueue.Arn
+            BatchSize: 10
+            Enabled: true
+          
+Outputs:
+  ApiURL:
+    Description: "API Gateway endpoint URL for Prod stage for Hello World function"
+    Value: !Sub "https://${notiApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
