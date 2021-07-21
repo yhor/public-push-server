@@ -114,7 +114,7 @@ router.post('/', async (req, res) => {
 			});
 		}
 	} catch (e){
-		return badRequest(res, '그대로', e);
+		return badRequest(res, '전송 실패', e);
 	}
 });
 

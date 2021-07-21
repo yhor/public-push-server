@@ -2,15 +2,20 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: >
   noti-server
-
-  Sample SAM Template for noti-server
-
   
 Parameters:
   allLayer:
     Type: String
     Description: zip layer arn
-    Default: 'arn:aws:lambda:ap-northeast-2:xxxxxxx:layer:xxxxx:3'
+    Default: arn:aws:lambda:ap-northeast-2:xxxxx:layer:xxxx:x
+  domainName:
+    Type: String
+    Description: domainName
+    Default: domainName
+  domainACM:
+    Type: String
+    Description: domainACM
+    Default: domainACM
   
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
@@ -23,7 +28,7 @@ Globals:
     Environment:
       Variables:
         PROJECT_DDB: !Ref ProjectDB
-    
+
 
 Resources:
 
@@ -64,6 +69,12 @@ Resources:
         AllowMethods: "'GET,POST,DELETE'"
         AllowHeaders: "'Content-Type, Authorization, Content-Length, x-requested-with'"
         AllowOrigin: "'*'"
+      Domain:
+        DomainName: !Ref domainName
+        CertificateArn: !Ref domainACM
+        EndpointConfiguration: REGIONAL
+        BasePath:
+          - /
 
   # Lambda
   ExpressFunction:
@@ -74,7 +85,7 @@ Resources:
       Environment:
         Variables:
           BASE_PATH: "/Prod/"
-          SCHEMES: "https"
+          SCHEMES: https
           SQS_URL: !Ref SimpleQueue
       Events:
         BackendApi:
