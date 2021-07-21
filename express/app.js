@@ -14,10 +14,10 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-let filelist = fs.readdirSync('./routes');
+const filelist = fs.readdirSync('./routes');
 filelist.forEach(file => {
-    var key = file.split('.')[0];
-    app.use(`/${key}`, require(`./routes/${key}`));
+	let key = file.split('.')[0];
+	app.use(`/${key}`, require(`./routes/${key}`));
 })
 
 app.use('/swagger', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
