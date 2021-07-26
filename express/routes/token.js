@@ -31,7 +31,7 @@ const { PROJECT_DDB } = process.env;
  *       content:
  *         application/json:
  *           schema:
- *             $ref: "#/definitions/tokenInsert"
+ *             $ref: '#/definitions/tokenInsert'
 *     responses:
  *       allOf:
  *       - $ref: '#/components/responses/All'
@@ -83,7 +83,7 @@ router.post('/', async (req, res) => {
 *       - in: query
 *         name: client_key
 *         required: false
-*         type: "interger"
+*         type: 'interger'
 *     responses:
  *       allOf:
  *       - $ref: '#/components/responses/All'

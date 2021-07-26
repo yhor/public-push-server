@@ -19,10 +19,10 @@ function jsonNullRemove(obj) {
 }
 
 function json_all_change(obj) {
-  if (typeof obj === "object") {
+  if (typeof obj === 'object') {
     for (let key in obj) {
-      if (typeof obj[key] === "object") obj[key] = json_all_change(obj[key]);
-      if (typeof obj[key] === "number") obj[key] = String(obj[key]);
+      if (typeof obj[key] === 'object') obj[key] = json_all_change(obj[key]);
+      if (typeof obj[key] === 'number') obj[key] = String(obj[key]);
     }
   }
   return obj;

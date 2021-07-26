@@ -7,7 +7,7 @@ Parameters:
   allLayer:
     Type: String
     Description: zip layer arn
-    Default: arn:aws:lambda:ap-northeast-2:xxxxx:layer:xxxx:x
+    Default: arn:aws:lambda:ap-northeast-2:871466012612:layer:notiLayer:3
   domainName:
     Type: String
     Description: domainName

@@ -7,7 +7,7 @@ const app = express();
 require('module-alias/register');
 
 const { swaggerSpec } = require('./swagger/config');
-const swaggerUi = require("swagger-ui-express");
+const swaggerUi = require('swagger-ui-express');
 
 app.use(cors());
 

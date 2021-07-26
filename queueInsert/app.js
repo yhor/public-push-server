@@ -14,8 +14,8 @@ exports.handler = async (event) => {
 			notification: {
 				title: data.title,
 				body: data.body,
-				icon: "firebase-logo.png",
-				click_action: "http://localhost:8081",
+				icon: 'firebase-logo.png',
+				click_action: 'http://localhost:8081',
 			},
 			to = await tokenCheck(TableName, data)
 		};
@@ -47,7 +47,7 @@ function pushSend(fcm, pushJson) {
 
 function tokenCheck(TableName, obj) {
 	return new Promise(async (resolve, reject) => {
-		if (obj.type === "topic") return resolve(`/topics/${obj.cid}`);
+		if (obj.type === 'topic') return resolve(`/topics/${obj.cid}`);
 
 		await dynamodb.get({ TableName, Key: { cid: parseInt(obj.cid) } }).promise()
 			.then(response => {

@@ -23,12 +23,12 @@ exports.handler = async (event) => {
 			let TableName = `${x.id}-noti`,
 				params = {
 					TableName,
-					KeyConditionExpression: "#type = :type", // 어떤 키로 조회할지 정합니다.
+					KeyConditionExpression: '#type = :type', // 어떤 키로 조회할지 정합니다.
 					ExpressionAttributeNames: { // 조회할 때 쓸 키의 이름, 별명을 정합니다.
-						"#type": "time"
+						'#type': 'time'
 					},
 					ExpressionAttributeValues: { // 조회할 키의 값을 정합니다.
-						":type": parseInt(timestamp)
+						':type': parseInt(timestamp)
 					}
 				};
 
@@ -71,7 +71,7 @@ let sendMsg = (jsonObj) => {
 				sendMsg(jsonObj);
 				// throw new Error(`500|다이나모 DB 에러 ${err}`);
 			} else {
-				console.log("Success", data.MessageId);
+				console.log('Success', data.MessageId);
 				resolve();
 			}
 		});

@@ -32,7 +32,7 @@ const { PROJECT_DDB } = process.env;
 *       content:
 *         application/json:
 *           schema:
-*             $ref: "#/definitions/pushSign"
+*             $ref: '#/definitions/pushSign'
 *     responses:
 *       allOf:
 *       - $ref: '#/components/responses/All'
@@ -40,15 +40,15 @@ const { PROJECT_DDB } = process.env;
 *         content:
 *           application/json:
 *             example:
-*               message: "notification 서버 프로젝트 등록 성공"
-*               data: [{"client_key": "ABCDEFGHIJK"}]
+*               message: 'notification 서버 프로젝트 등록 성공'
+*               data: [{'client_key': 'ABCDEFGHIJK'}]
 */
 
 router.post('/sign/', async (req, res) => {
 	try {
 		const { project, server_key } = req.body;
 		const korean = /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/;
-		const specialString = /[`~!@#$%^&*|\\\'\";:\/?\s]/gi;
+		const specialString = /[`~!@#$%^&*|\\\'\';:\/?\s]/gi;
 
 		if (!project) return badRequest(res, '프로젝트 필수.');
 		if (korean.test(project)) return badRequest(res, '프로젝트명 한글 지원 안됨.');
@@ -79,12 +79,12 @@ router.post('/sign/', async (req, res) => {
 		const create_noti = Dynamodb.createTable({
 			TableName: tableName,
 			KeySchema: [
-				{ AttributeName: "time", KeyType: "HASH" },  //Partition key
-				{ AttributeName: "cid", KeyType: "RANGE" }  //Sort key
+				{ AttributeName: 'time', KeyType: 'HASH' },  //Partition key
+				{ AttributeName: 'cid', KeyType: 'RANGE' }  //Sort key
 			],
 			AttributeDefinitions: [
-				{ AttributeName: "time", AttributeType: "N" },
-				{ AttributeName: "cid", AttributeType: "S" }
+				{ AttributeName: 'time', AttributeType: 'N' },
+				{ AttributeName: 'cid', AttributeType: 'S' }
 			],
 			ProvisionedThroughput
 		}).promise();
@@ -93,10 +93,10 @@ router.post('/sign/', async (req, res) => {
 		const create_token = Dynamodb.createTable({
 			TableName: tableName2,
 			KeySchema: [
-				{ AttributeName: "cid", KeyType: "HASH" }  //Sort key
+				{ AttributeName: 'cid', KeyType: 'HASH' }  //Sort key
 			],
 			AttributeDefinitions: [
-				{ AttributeName: "cid", AttributeType: "N" }
+				{ AttributeName: 'cid', AttributeType: 'N' }
 			],
 			ProvisionedThroughput
 		}).promise();
@@ -133,7 +133,7 @@ router.post('/sign/', async (req, res) => {
 *       content:
 *         application/json:
 *           schema:
-*             $ref: "#/definitions/pushDelete"
+*             $ref: '#/definitions/pushDelete'
 *     responses:
 *       allOf:
 *       - $ref: '#/components/responses/All'
